@@ -1,0 +1,63 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy JAR app to Azure Web App - sai29
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java version
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'microsoft'
+
+      - name: Build with Maven
+        run: mvn clean install
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-app
+          path: '${{ github.workspace }}/target/*.jar'
+
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write #This is required for requesting the JWT
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: java-app
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_D12D0D57AD094DB1A8F334A37C2A56C6 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_72590CE427EA43F98A4D2DDB11C1B9DB }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_9AEDA45C20C34E48A8486D5A399CD064 }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'sai29'
+          slot-name: 'Production'
+          package: '*.jar'
+          
